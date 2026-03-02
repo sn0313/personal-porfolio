@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Cloud, 
@@ -30,28 +30,74 @@ import {
   Activity,
   Box,
   ShieldCheck,
-  Zap
+  Zap,
+  Send
 } from 'lucide-react';
 import { EXPERIENCES, PROJECTS, EDUCATION, SKILLS } from './constants';
 
 type View = 'dashboard' | 'compute' | 'storage' | 'networking' | 'ai' | 'identity';
 
+interface TerminalLine {
+  text: string;
+  type: 'input' | 'output' | 'error' | 'system';
+}
+
 export default function App() {
   const [currentView, setCurrentView] = useState<View>('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isTerminalOpen, setIsTerminalOpen] = useState(false);
-  const [logs, setLogs] = useState<string[]>(['Initializing Cloud Console...', 'Authenticating user: Ong Shi Nee...', 'Fetching resource metadata...', 'Ready.']);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [terminalInput, setTerminalInput] = useState('');
+  const [terminalHistory, setTerminalHistory] = useState<TerminalLine[]>([
+    { text: 'Cloud Shell initialized.', type: 'system' },
+    { text: 'Type "help" to see available commands.', type: 'system' }
+  ]);
+  const terminalEndRef = useRef<HTMLDivElement>(null);
 
-  const addLog = (msg: string) => {
-    setLogs(prev => [...prev.slice(-10), `> ${msg}`]);
+  useEffect(() => {
+    if (terminalEndRef.current) {
+      terminalEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [terminalHistory]);
+
+  const handleTerminalCommand = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!terminalInput.trim()) return;
+
+    const cmd = terminalInput.trim().toLowerCase();
+    const newHistory: TerminalLine[] = [...terminalHistory, { text: `ongshinee@cloud-console:~$ ${terminalInput}`, type: 'input' }];
+
+    if (cmd === 'help') {
+      newHistory.push({ text: 'Available commands: help, ls, ssh <resource>, whoami, clear, exit, date', type: 'output' });
+    } else if (cmd === 'ls') {
+      newHistory.push({ text: 'Resources: experiences, projects, education, skills', type: 'output' });
+    } else if (cmd === 'whoami') {
+      newHistory.push({ text: 'Ong Shi Nee - Cloud Consultant & CS Graduate', type: 'output' });
+    } else if (cmd === 'clear') {
+      setTerminalHistory([]);
+      setTerminalInput('');
+      return;
+    } else if (cmd === 'date') {
+      newHistory.push({ text: new Date().toString(), type: 'output' });
+    } else if (cmd.startsWith('ssh ')) {
+      const target = cmd.split(' ')[1];
+      newHistory.push({ text: `Connecting to ${target}...`, type: 'system' });
+      setTimeout(() => {
+        setTerminalHistory(prev => [...prev, { text: `Connection established to ${target}. Access level: Admin.`, type: 'output' }]);
+      }, 1000);
+    } else if (cmd === 'exit') {
+      setIsTerminalOpen(false);
+    } else {
+      newHistory.push({ text: `Command not found: ${cmd}. Type "help" for assistance.`, type: 'error' });
+    }
+
+    setTerminalHistory(newHistory);
+    setTerminalInput('');
   };
 
   const SidebarItem = ({ id, icon: Icon, label }: { id: View, icon: any, label: string }) => (
     <div 
-      onClick={() => {
-        setCurrentView(id);
-        addLog(`Navigating to ${label} services...`);
-      }}
+      onClick={() => setCurrentView(id)}
       className={`sidebar-item ${currentView === id ? 'sidebar-item-active' : ''}`}
     >
       <Icon className="w-4 h-4" />
@@ -71,7 +117,7 @@ export default function App() {
           <div className="w-7 h-7 bg-oci-orange rounded flex items-center justify-center shrink-0">
             <Cloud className="w-4 h-4 text-white" />
           </div>
-          <span className="font-display font-bold text-white tracking-tight whitespace-nowrap">OCI Console</span>
+          <span className="font-display font-bold text-white tracking-tight whitespace-nowrap">Cloud Console</span>
         </div>
 
         <div className="flex-1 overflow-y-auto py-4">
@@ -110,7 +156,7 @@ export default function App() {
             <div className="flex items-center gap-2 text-xs font-medium">
               <span className="text-slate-500">Region:</span>
               <span className="text-white flex items-center gap-1">
-                Malaysia South (KUL) <ChevronDown className="w-3 h-3" />
+                Global (Anywhere) <ChevronDown className="w-3 h-3" />
               </span>
             </div>
           </div>
@@ -120,6 +166,8 @@ export default function App() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
               <input 
                 type="text" 
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search resources, services, and documentation" 
                 className="w-full bg-console-bg border border-console-border rounded py-1.5 pl-10 pr-4 text-sm focus:outline-none focus:border-oci-orange transition-colors"
               />
@@ -158,12 +206,12 @@ export default function App() {
               transition={{ duration: 0.2 }}
               className="max-w-7xl mx-auto"
             >
-              {currentView === 'dashboard' && <DashboardView />}
-              {currentView === 'compute' && <ComputeView />}
-              {currentView === 'storage' && <StorageView />}
-              {currentView === 'networking' && <NetworkingView />}
-              {currentView === 'ai' && <AIView />}
-              {currentView === 'identity' && <IdentityView />}
+              {currentView === 'dashboard' && <DashboardView searchTerm={searchTerm} />}
+              {currentView === 'compute' && <ComputeView searchTerm={searchTerm} />}
+              {currentView === 'storage' && <StorageView searchTerm={searchTerm} />}
+              {currentView === 'networking' && <NetworkingView searchTerm={searchTerm} />}
+              {currentView === 'ai' && <AIView searchTerm={searchTerm} />}
+              {currentView === 'identity' && <IdentityView searchTerm={searchTerm} />}
             </motion.div>
           </AnimatePresence>
         </main>
@@ -173,27 +221,43 @@ export default function App() {
           {isTerminalOpen && (
             <motion.div 
               initial={{ height: 0 }}
-              animate={{ height: 200 }}
+              animate={{ height: 250 }}
               exit={{ height: 0 }}
               className="bg-black border-t border-console-border overflow-hidden flex flex-col"
             >
               <div className="flex items-center justify-between px-4 py-1.5 bg-zinc-900 border-b border-white/5">
                 <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">
                   <Terminal className="w-3 h-3" />
-                  Cloud Shell
+                  Cloud Shell (Interactive)
                 </div>
                 <button onClick={() => setIsTerminalOpen(false)} className="p-1 hover:bg-white/10 rounded">
                   <X className="w-3 h-3" />
                 </button>
               </div>
-              <div className="flex-1 p-4 font-mono text-xs text-emerald-500 overflow-y-auto">
-                {logs.map((log, i) => (
-                  <div key={i} className="mb-1">{log}</div>
+              <div className="flex-1 p-4 font-mono text-xs overflow-y-auto scrollbar-hide">
+                {terminalHistory.map((line, i) => (
+                  <div 
+                    key={i} 
+                    className={`mb-1 ${
+                      line.type === 'error' ? 'text-red-400' : 
+                      line.type === 'system' ? 'text-blue-400' : 
+                      line.type === 'input' ? 'text-white' : 'text-emerald-500'
+                    }`}
+                  >
+                    {line.text}
+                  </div>
                 ))}
-                <div className="flex items-center gap-2">
-                  <span className="text-white">ongshinee@oci-console:~$</span>
-                  <span className="w-2 h-4 bg-emerald-500 animate-pulse" />
-                </div>
+                <form onSubmit={handleTerminalCommand} className="flex items-center gap-2">
+                  <span className="text-white shrink-0">ongshinee@cloud-console:~$</span>
+                  <input 
+                    autoFocus
+                    type="text"
+                    value={terminalInput}
+                    onChange={(e) => setTerminalInput(e.target.value)}
+                    className="flex-1 bg-transparent border-none outline-none text-white p-0"
+                  />
+                </form>
+                <div ref={terminalEndRef} />
               </div>
             </motion.div>
           )}
@@ -203,7 +267,16 @@ export default function App() {
   );
 }
 
-function DashboardView() {
+function DashboardView({ searchTerm }: { searchTerm: string }) {
+  const filteredExperiences = EXPERIENCES.filter(e => 
+    e.role.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    e.company.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+  const filteredProjects = PROJECTS.filter(p => 
+    p.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    p.description.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -229,8 +302,8 @@ function DashboardView() {
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {[
-              { label: 'Experiences', count: EXPERIENCES.length, status: 'Active', color: 'status-active' },
-              { label: 'Projects', count: PROJECTS.length, status: 'Running', color: 'status-active' },
+              { label: 'Experiences', count: filteredExperiences.length, status: 'Active', color: 'status-active' },
+              { label: 'Projects', count: filteredProjects.length, status: 'Running', color: 'status-active' },
               { label: 'Certificates', count: SKILLS.certificates.length, status: 'Verified', color: 'status-active' },
               { label: 'Uptime', count: '99.9%', status: 'Stable', color: 'status-active' },
             ].map((item, i) => (
@@ -295,7 +368,7 @@ function DashboardView() {
                 Computer science graduate with experience in cloud-based and AI-driven systems on Oracle Cloud Infrastructure (OCI).
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
-                <span className="status-pill status-active">OCI Certified</span>
+                <span className="status-pill status-active">Cloud Specialist</span>
                 <span className="status-pill status-active">AI Specialist</span>
               </div>
             </div>
@@ -306,7 +379,12 @@ function DashboardView() {
   );
 }
 
-function ComputeView() {
+function ComputeView({ searchTerm }: { searchTerm: string }) {
+  const filteredExperiences = EXPERIENCES.filter(e => 
+    e.role.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    e.company.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -329,7 +407,7 @@ function ComputeView() {
             </tr>
           </thead>
           <tbody className="divide-y divide-console-border">
-            {EXPERIENCES.map((exp, i) => (
+            {filteredExperiences.map((exp, i) => (
               <tr key={i} className="hover:bg-white/5 transition-colors group">
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-3">
@@ -357,7 +435,7 @@ function ComputeView() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {EXPERIENCES.map((exp, i) => (
+        {filteredExperiences.map((exp, i) => (
           <div key={i} className="console-card p-6">
             <h3 className="font-bold text-white mb-4 flex items-center gap-2">
               <Activity className="w-4 h-4 text-oci-orange" />
@@ -378,12 +456,17 @@ function ComputeView() {
   );
 }
 
-function StorageView() {
+function StorageView({ searchTerm }: { searchTerm: string }) {
+  const filteredEducation = EDUCATION.filter(e => 
+    e.institution.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    e.degree.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-white">Object Storage</h1>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {EDUCATION.map((edu, i) => (
+        {filteredEducation.map((edu, i) => (
           <div key={i} className="console-card">
             <div className="px-6 py-4 border-b border-console-border bg-white/5 flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -419,12 +502,18 @@ function StorageView() {
   );
 }
 
-function NetworkingView() {
+function NetworkingView({ searchTerm }: { searchTerm: string }) {
+  const filteredProjects = PROJECTS.filter(p => 
+    p.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    p.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    p.tags.some(t => t.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
+
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-white">Virtual Cloud Networks (Projects)</h1>
       <div className="grid grid-cols-1 gap-6">
-        {PROJECTS.map((project, i) => (
+        {filteredProjects.map((project, i) => (
           <div key={i} className="console-card flex flex-col md:flex-row">
             <div className="w-full md:w-64 aspect-video md:aspect-auto bg-zinc-900 overflow-hidden shrink-0">
               <img 
@@ -461,7 +550,9 @@ function NetworkingView() {
   );
 }
 
-function AIView() {
+function AIView({ searchTerm }: { searchTerm: string }) {
+  const filteredSkills = SKILLS.ai.filter(s => s.toLowerCase().includes(searchTerm.toLowerCase()));
+
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-white">AI Services & Data Science</h1>
@@ -472,7 +563,7 @@ function AIView() {
             Generative AI Capabilities
           </h3>
           <div className="space-y-4">
-            {SKILLS.ai.map((skill, i) => (
+            {filteredSkills.map((skill, i) => (
               <div key={i} className="flex items-center justify-between p-3 rounded bg-white/5 border border-white/5">
                 <span className="text-sm text-slate-300">{skill}</span>
                 <div className="flex items-center gap-1">
@@ -513,7 +604,9 @@ function AIView() {
   );
 }
 
-function IdentityView() {
+function IdentityView({ searchTerm }: { searchTerm: string }) {
+  const filteredLanguages = SKILLS.languages.filter(l => l.toLowerCase().includes(searchTerm.toLowerCase()));
+
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-white">Identity & Access Management (Skills)</h1>
@@ -525,7 +618,7 @@ function IdentityView() {
             Verified Skills
           </h3>
           <div className="grid grid-cols-2 gap-3">
-            {SKILLS.languages.map((skill, i) => (
+            {filteredLanguages.map((skill, i) => (
               <div key={i} className="flex items-center gap-2 p-2 rounded bg-white/5 border border-white/5 text-xs">
                 <Code2 className="w-3 h-3 text-oci-orange" />
                 {skill}
@@ -564,6 +657,7 @@ function IdentityView() {
                   initial={{ width: 0 }}
                   whileInView={{ width: '90%' }}
                   className="h-full bg-oci-orange" 
+                  transition={{ duration: 1, ease: "easeOut" }}
                 />
               </div>
             </div>
