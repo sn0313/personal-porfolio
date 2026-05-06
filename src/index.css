@@ -7,60 +7,152 @@
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
   
   --color-oci-orange: #F27D26;
-  --color-console-bg: #0A0B10;
-  --color-console-sidebar: #15171E;
-  --color-console-header: #1A1D24;
-  --color-console-border: #2A2D35;
-  --color-console-accent: #3A3F4B;
+  --color-console-bg: #030407;
+  --color-console-sidebar: #0C0D12;
+  --color-console-header: #0F1117;
+  --color-console-border: #1E222C;
+  --color-console-accent: #1F2229;
 }
 
 @layer base {
   body {
-    @apply bg-console-bg text-slate-200 font-sans antialiased overflow-hidden;
+    @apply bg-console-bg text-slate-300 font-sans antialiased overflow-hidden selection:bg-oci-orange/30;
   }
 }
 
 .console-card {
-  @apply bg-console-sidebar/40 border border-console-border rounded-lg overflow-hidden;
+  @apply bg-console-sidebar/40 border border-console-border rounded-xl overflow-hidden transition-all duration-500 relative;
+  box-shadow: 0 4px 30px -5px rgba(0, 0, 0, 0.8);
+}
+
+.console-card::before {
+  content: '';
+  @apply absolute inset-0 bg-gradient-to-br from-white/[0.03] to-transparent opacity-0 transition-opacity duration-500;
+}
+
+.console-card:hover::before {
+  @apply opacity-100;
+}
+
+.console-card:hover {
+  @apply border-oci-orange/40 bg-console-sidebar/60 transform -translate-y-1;
+  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.9), 0 0 20px -5px rgba(242, 125, 38, 0.2);
 }
 
 .console-button {
-  @apply px-4 py-2 rounded bg-console-accent hover:bg-oci-orange hover:text-white transition-all text-sm font-medium border border-console-border;
+  @apply px-5 py-2.5 rounded-lg bg-console-accent hover:bg-oci-orange hover:text-white transition-all text-[11px] font-bold uppercase tracking-[2px] border border-console-border flex items-center justify-center gap-3 active:scale-95;
 }
 
 .status-pill {
-  @apply px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border;
+  @apply px-2 py-0.5 rounded flex items-center gap-1.5 text-[9px] font-black uppercase tracking-[2px] border shadow-sm;
 }
 
 .status-active {
-  @apply bg-emerald-500/10 text-emerald-400 border-emerald-500/20;
+  @apply bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-emerald-500/10;
 }
 
-.status-pending {
-  @apply bg-amber-500/10 text-amber-400 border-amber-500/20;
+.status-pulse {
+  @apply w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse;
+  box-shadow: 0 0 8px #10b981;
 }
 
 .sidebar-item {
-  @apply flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-400 hover:text-white hover:bg-white/5 transition-all cursor-pointer border-l-2 border-transparent;
+  @apply flex items-center gap-4 px-4 py-4 text-xs font-bold text-slate-500 hover:text-white hover:bg-white/5 transition-all cursor-pointer border-l-4 border-transparent uppercase tracking-wider relative;
 }
 
 .sidebar-item-active {
-  @apply text-white bg-white/10 border-oci-orange;
+  @apply text-white bg-oci-orange/5 border-oci-orange text-oci-orange;
+  text-shadow: 0 0 15px rgba(242, 125, 38, 0.4);
 }
 
-/* Scrollbar for console look */
+/* Custom Scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 4px;
+  height: 4px;
 }
 ::-webkit-scrollbar-track {
-  @apply bg-console-bg;
+  @apply bg-transparent;
 }
 ::-webkit-scrollbar-thumb {
-  @apply bg-console-border rounded-full hover:bg-slate-600;
+  @apply bg-console-border rounded-full hover:bg-slate-700 transition-colors;
 }
 
-.terminal-text {
-  @apply font-mono text-xs leading-relaxed;
+/* Grid background */
+.bg-grid-console {
+  background-size: 60px 60px;
+  background-image: 
+    linear-gradient(to right, rgba(255, 255, 255, 0.02) 1.5px, transparent 1.5px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1.5px, transparent 1.5px);
+}
+
+.terminal-line {
+  @apply font-mono text-[11px] leading-relaxed opacity-70 border-l-2 border-transparent pl-2 hover:border-oci-orange hover:opacity-100 transition-all cursor-default;
+}
+
+/* New striking effects */
+.glow-text {
+  text-shadow: 0 0 20px currentColor;
+}
+
+.glow-orange {
+  box-shadow: 0 0 15px rgba(242, 125, 38, 0.4);
+}
+
+.scanline {
+  width: 100%;
+  height: 2px;
+  background: rgba(242, 125, 38, 0.1);
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  animation: scanline 10s linear infinite;
+  z-index: 100;
+}
+
+.glitch-overlay {
+  @apply fixed inset-0 pointer-events-none z-[200] opacity-0;
+}
+
+.glitch-active {
+  animation: glitch 0.2s infinite;
+  @apply opacity-30;
+}
+
+@keyframes glitch {
+  0% { transform: translate(0); }
+  20% { transform: translate(-5px, 5px); }
+  40% { transform: translate(-5px, -5px); }
+  60% { transform: translate(5px, 5px); }
+  80% { transform: translate(5px, -5px); }
+  100% { transform: translate(0); }
+}
+
+@keyframes scanline {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+
+.shake-system {
+  animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both infinite;
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+@keyframes shake {
+  10%, 90% { transform: translate3d(-1px, 0, 0); }
+  20%, 80% { transform: translate3d(2px, 0, 0); }
+  30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+  40%, 60% { transform: translate3d(4px, 0, 0); }
+}
+
+.animate-spin-slow {
+  animation: spin 8s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
